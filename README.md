@@ -13,7 +13,7 @@ we can voxelisation all the voxels and output voxels intersected with building's
 inside the building: ladder:
 <img width="1473" alt="image" src="https://user-images.githubusercontent.com/60132725/229598302-ce10067d-aac6-42f0-8199-4202125fb6f7.png">
 
-#next jobs u can do:
+# next jobs u can do:
 ## slightly change the voxel face intersect method:
 current method we stored the faces together and then intersect voxels with the whole faces,
 change the push_voxel function in voxel class, change the vector<faces> to map<string, object>, and label it according to the targeted labels
