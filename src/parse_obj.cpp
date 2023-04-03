@@ -4,6 +4,7 @@ std::map<std::string, Object> objects;
 
 
 using namespace std;
+
 std::pair<std::vector<Face>,std::map<std::string, Object>> parse_obj(const std::string& filename,std::vector<Point3>& vertices){
 	
 	

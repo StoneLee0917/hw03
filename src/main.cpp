@@ -4,7 +4,7 @@
   Hugo Ledoux <h.ledoux@tudelft.nl>
   2023-03-01
 */
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+
 #include <CGAL/Triangulation_3.h>
 #include <iostream>
 #include <fstream>
@@ -47,6 +47,7 @@ int main(int argc, const char * argv[]) {
     stored_faces_obj("face_obj.obj",faces,vertices);
     std::array<Point3, 8> oobb = generate_oobb_building(faces,vertices);
     VoxelGrid voxels = VoxelGrid(oobb,0.5);
+    voxels.push_voxel(faces,vertices);
     voxels.out_put_all_voxel_to_obj("output_voxels.obj");
     //for (const auto& point : oobb) {
     //std::cout << point << " ";

@@ -1,6 +1,13 @@
 #include "geomtools.h"
 
 
+// judge whether a cube intersect with a face
+
+
+
+
+
+
 
 
 
