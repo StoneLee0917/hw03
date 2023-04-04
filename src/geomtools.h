@@ -59,7 +59,7 @@ public:
         Point3 tri1 = vertices[face.indices[1]];
         Point3 tri2 = vertices[face.indices[2]];
         Triangle3 triangle(tri0, tri1, tri2);
-        Point3 end1 =  (p0+p1+p2+p3+p4)/4;
+        Point3 end1 =  (p0+p1+p2+p3)/4;
         Point3 start1 =  (p4+p5+p6+p7)/4;
         Point3 end2 =  (p1+p2+p6+p7)/4;
         Point3 start2 =  (p3+p4+p5+p0)/4;
@@ -186,6 +186,7 @@ struct VoxelGrid {
     void push_voxel(const std::vector<Face>& faces, const std::vector<Point3>& vertices,const int& label_num)
     {
         // excecute this function, first make sure that all voxels have been pushed, if not push them first
+       
         if(voxels.size()==0){
             this->push_voxel(faces,vertices);
             }
@@ -358,6 +359,8 @@ struct VoxelGrid {
         if (y+1<this->max_y) neighbours.push_back({x,y+1,z});
         if (z-1>=0) neighbours.push_back({x,y,z-1});
         if (z+1<this->max_z) neighbours.push_back({x,y,z+1});
+        if (x-1>=0 && y-1>=0) neighbours.push_back({x-1,y-1,z});
+        if (x-1>=0 && y+1<this->max_y) neighbours.push_back({x-1,y+1,z});
         return neighbours;
 
   };
