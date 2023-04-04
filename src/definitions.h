@@ -38,7 +38,7 @@ struct FaceInfo2
 };  
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef K::Vector_3 Vector3;
+typedef K::Vector_3                 Vector3;
 
 typedef K::Point_2                  Point2;
 typedef K::Point_3                  Point3;
@@ -55,6 +55,7 @@ typedef CGAL::Exact_intersections_tag                             Itag;
 typedef CGAL::Constrained_Delaunay_triangulation_2<K, TDS, Itag>  CT;
 Point3 operator+(const Point3& p1, const Point3& p2);
 Point3 operator/(const Point3& p1, const double& scale);
+//Point3 operator-(const Point3& p1, const Point3& p2);
 
 
 

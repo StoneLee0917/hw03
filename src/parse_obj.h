@@ -2,6 +2,7 @@
 #define __parse_obj__
 
 #include "definitions.h"
+#include "geomtools.h"
 #include <iostream>
 #include <fstream>
 #include <string>

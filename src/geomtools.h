@@ -1,6 +1,6 @@
 #ifndef __geomtools__
 #define __geomtools__
-
+#define unlabelled -1
 #include "definitions.h"
 
 
@@ -12,15 +12,6 @@ std::vector<std::vector<int>>
 construct_ct_one_face(const std::vector<std::vector<int>>& lsRings, 
                       const std::vector<Point3>& lspts);
 
-class MyPoint : public Point3 {
-public:
-    MyPoint(double x, double y, double z) : Point_3(x, y, z) {}
-
-    MyPoint operator+(const MyPoint& other) const {
-        return MyPoint(x() + other.x(), y() + other.y(), z() + other.z());
-    }
-};
-
 
 
 
@@ -29,7 +20,7 @@ public:
 struct Voxel{
 public:
     Voxel(const Point3& corner,const Vector3& vx,const Vector3& vy,const Vector3& vz):corner(corner){
-        label = 0;}
+        label = unlabelled;}
     // label the Voxel during label
     Voxel(const Point3& corner,const Vector3& vx,const Vector3& vy,const Vector3& vz,const int& label_num,const std::vector<Face>& faces,const std::vector<Point3>& vertices)
     :Voxel(corner,vx,vy,vz){
@@ -47,13 +38,48 @@ public:
             bool intersect_or_not_with_this_face = intersect_faces_cubes(face,cube_vertices,vertices);
             if (intersect_or_not_with_this_face) {
                 this->label = label_num;
-                std::cout<<"one voxel is labelled"<<std::endl;
+                
                 break;
             };
 
         }
 
     }
+   bool intersect_faces_cubes(const Vector3& vx,const Vector3& vy,const Vector3& vz,const Face& face,const std::vector<Point3>& vertices){
+        Point3 p0 = this->corner;
+        Point3 p1 = p0+vx;
+        Point3 p2 = p0+vx+vy;
+        Point3 p3 = p0+vy;
+        Point3 p4 = p0+vy+vz;
+        Point3 p5 = p0+vz;
+        Point3 p6 = p0+vx+vz;
+        Point3 p7 = p0+vx+vy+vz;
+       
+        Point3 tri0 = vertices[face.indices[0]];
+        Point3 tri1 = vertices[face.indices[1]];
+        Point3 tri2 = vertices[face.indices[2]];
+        Triangle3 triangle(tri0, tri1, tri2);
+        Point3 end1 =  (p0+p1+p2+p3+p4)/4;
+        Point3 start1 =  (p4+p5+p6+p7)/4;
+        Point3 end2 =  (p1+p2+p6+p7)/4;
+        Point3 start2 =  (p3+p4+p5+p0)/4;
+        Point3 end3 =  (p1+p6+p0+p5)/4;
+        Point3 start3 =  (p2+p3+p4+p7)/4;
+        Segment3 segment1(end1,start1);
+        Segment3 segment2(end2,start2);
+
+        Segment3 segment3(end3,start3);
+        bool condition1 = CGAL::do_intersect(segment1, triangle);
+        bool condition2 = CGAL::do_intersect(segment2, triangle);
+        bool condition3 = CGAL::do_intersect(segment3, triangle);
+        if (condition1 || condition2 || condition3){
+            return true;
+        }
+        else
+            return false;
+
+    };
+
     bool intersect_faces_cubes(const Face& face,const std::array<Point3,8>& cube_vertices,const std::vector<Point3>& vertices){
         
         Point3 p0 = vertices[face.indices[0]];
@@ -77,12 +103,7 @@ public:
             return true;
         }
         else
-           return false;
-
-
-
-
-}
+           return false;}
     Point3 corner;
     int label;
 };
@@ -117,7 +138,7 @@ struct VoxelGrid {
         initial_point = oobb[0]-vx;
         initial_point -=vy;
         initial_point -=vz;
-
+        this->unit = unit;
         int total_voxels = max_x*max_y*max_z;
         //push_voxel(max_x, max_y,max_z);
         //std::cout<<total_voxels<<"total"<<std::endl;
@@ -162,13 +183,104 @@ struct VoxelGrid {
         }
 
     }
-    void out_put_all_voxel_to_obj(const std::string& filename,const int& extertior_label=0){
+    void push_voxel(const std::vector<Face>& faces, const std::vector<Point3>& vertices,const int& label_num)
+    {
+        
+        this->push_voxel();
+       
+        for(auto face:faces){
+            Point3 p0 = vertices[face.indices[0]];
+            Point3 p1 = vertices[face.indices[1]];
+            Point3 p2 = vertices[face.indices[2]];
+            
+            std::vector<std::vector<int>> xyz_range = extent_triangule(p0,p1,p2);
+            int min_x_values = xyz_range[0][0];
+            int max_x_values = xyz_range[0][1];
+
+            if (min_x_values <0) min_x_values=0;
+            if (max_x_values >max_x) max_x_values = max_x;
+
+            int min_y_values = xyz_range[1][0];
+            int max_y_values = xyz_range[1][1];
+
+            if (min_y_values <0) min_y_values=0;
+            if (max_y_values >max_y) max_y_values = max_y;
+
+            int min_z_values = xyz_range[2][0];
+            int max_z_values = xyz_range[2][1];
+
+            if (min_z_values <0) min_z_values=0;
+            if (max_z_values >max_z) max_z_values = max_z;
+           
+            
+            
+            
+           for(int x = min_x_values;x<=max_x_values;++x){
+                for(int y = min_y_values;y<=max_y_values;++y){
+                    for(int z = min_z_values;z<=max_z_values;++z){
+                        if(voxels[z + y*max_z + x*max_z*max_y].intersect_faces_cubes(vx,vy,vz,face,vertices)){
+                            
+                        voxels[z + y*max_z + x*max_z*max_y].label = label_num;}
+                        
+
+                    
+
+                    }
+                }
+            }
+
+
+        }
+    }
+
+
+
+    
+    // coordinate conversion, convert arbitory point into initial_point with addition of 3 unit vectors
+    std::vector<double> converstion(const Point3& pt){
+        
+        Vector3 decentralized =  pt - initial_point;
+
+
+        
+        double value_vx = (vx.x()*decentralized.x()+vx.y()*decentralized.y()+vx.z()*decentralized.z())/(unit*unit);
+        double value_vy = (vy.x()*decentralized.x()+vy.y()*decentralized.y()+vy.z()*decentralized.z())/(unit*unit);
+        double value_vz = (vz.x()*decentralized.x()+vz.y()*decentralized.y()+vz.z()*decentralized.z())/(unit*unit);
+        std::vector<double> new_coord ={value_vx,value_vy,value_vz};
+        
+        return new_coord;
+    }
+    std::vector<std::vector<int>> extent_triangule(const Point3& p0,const Point3& p1,const Point3& p2){
+        
+        std::vector<double> pt_0 = converstion(p0);
+        std::vector<double> pt_1 = converstion(p1);
+        std::vector<double> pt_2 = converstion(p2);
+        std::vector<double> xvalues = {pt_0[0],pt_1[0],pt_2[0]};
+        double min_value = *std::min_element(xvalues.begin(), xvalues.end());
+        int min_x = int(min_value)-2;
+        double max_value = *std::max_element(xvalues.begin(), xvalues.end());
+        int maxx = int(max_value)+2;
+        std::vector<double> yvalues = {pt_0[1],pt_1[1],pt_2[1]};
+        min_value = *std::min_element(yvalues.begin(), yvalues.end());
+        int min_y = int(min_value)-2;
+        max_value = *std::max_element(yvalues.begin(), yvalues.end());
+        int maxy = int(max_value)+2;
+        std::vector<double> zvalues = {pt_0[2],pt_1[2],pt_2[2]};
+        min_value = *std::min_element(zvalues.begin(), zvalues.end());
+        int min_z = int(min_value)-2;
+        max_value = *std::max_element(zvalues.begin(), zvalues.end());
+        int maxz = int(max_value)+2;
+        std::vector<std::vector<int>> xyz_range = {{min_x,maxx},{min_y,maxy},{min_z,maxz}};
+        return xyz_range;
+
+    }
+    void out_put_all_voxel_to_obj(const std::string& filename,const int& selected_label=1){
         std::ofstream out(filename);
         if (!out.is_open()) {std::cerr << "Error: could not open file \"" << filename << "\" for writing." << std::endl; return;}
         out << "# OBJ file generated by output_voxels_as_obj()" << std::endl;
         int vertex_index = 1;
         for(auto voxel:voxels){
-            if (voxel.label==extertior_label) continue;
+            if (voxel.label!= selected_label) continue;
             Point3 p0 = voxel.corner;
             Point3 p1 = p0 + this->vx;
             Point3 p2 = p0 + this->vx+this->vy;
@@ -198,9 +310,18 @@ struct VoxelGrid {
         out.close();
 
 }
+    void out_put_voxels_seperately(const std::string& filename,const std::vector<int>& labels){
+        std::string full_filename;
+        for(auto label:labels){
+            std::cout<<"output"<<label<<std::endl;
+            full_filename = filename+std::to_string(label)+".obj";
+            out_put_all_voxel_to_obj(full_filename,label);
+        };
+        
 
+    };
 
-    json write_voxels_grid_tojson(const int& unwanted_label = -9999){
+    json write_voxels_grid_tojson(const int& unwanted_label = -1){
         assert(voxels.size()>0);
         json j;
         j["type"] = "CityJSON";
@@ -226,19 +347,30 @@ struct VoxelGrid {
     for (unsigned int i = 0; i < total_voxels; ++i) voxels.push_back(0);
   }*/
 
-  
+  std::vector<std::vector<int>> get_neighbours(int x, int y, int z){
+        // we only return 6 neighbors of a voxel
+        std::vector<std::vector<int>> neighbours;
+        if (x-1>=0) neighbours.push_back({x-1,y,z});
+        if (x+1<this->max_x) neighbours.push_back({x+1,y,z});
+        if (y-1>=0) neighbours.push_back({x,y-1,z});
+        if (y+1<this->max_y) neighbours.push_back({x,y+1,z});
+        if (z-1>=0) neighbours.push_back({x,y,z-1});
+        if (z+1<this->max_z) neighbours.push_back({x,y,z+1});
+        return neighbours;
+
+  };
   Voxel &operator()(const unsigned int &x, const unsigned int &y, const unsigned int &z) {
     assert(x >= 0 && x < max_x);
     assert(y >= 0 && y < max_y);
     assert(z >= 0 && z < max_z);
-    return voxels[x + y*max_x + z*max_x*max_y];
+    return voxels[z + y*max_z + x*max_z*max_y];
   }
   
   Voxel operator()(const unsigned int &x, const unsigned int &y, const unsigned int &z) const {
     assert(x >= 0 && x < max_x);
     assert(y >= 0 && y < max_y);
     assert(z >= 0 && z < max_z);
-    return voxels[x + y*max_x + z*max_x*max_y];
+    return voxels[z + y*max_z + x*max_z*max_y];
   }
 };
 
