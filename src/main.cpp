@@ -179,13 +179,16 @@ int main(int argc, const char * argv[]) {
     //-- will read the file passed as argument or 2b.city.json if nothing is passed
     const char* filename = (argc > 1) ? argv[1] : "../data/input.obj";
     const int  output_label = (argc > 2) ? int(*argv[2]) : 1;
+    const double  unit = (argc > 3) ? double(*argv[3]) : 0.25;
+    bool output_intermediate_components = (argc > 4) ? bool(*argv[4]) : true;
+
     std::vector<Point3> vertices;
     auto obj_parse_result = parse_obj(filename,vertices);
     std::vector<Face> faces = obj_parse_result.first;
     std::map<std::string,Object> objects=  obj_parse_result.second;
     stored_faces_obj("face_obj.obj",faces,vertices);
     std::array<Point3, 8> oobb = generate_oobb_building(faces,vertices);
-    VoxelGrid voxels = VoxelGrid(oobb,0.5);
+    VoxelGrid voxels = VoxelGrid(oobb,unit);
     int wall_face_label = 1;
     voxels.push_voxel();
     int shells_count = 0;
@@ -205,11 +208,14 @@ int main(int argc, const char * argv[]) {
     std::vector<int> labells;
     labells = label_voxels(voxels,0,wall_face_label);
 
-    voxels.out_put_all_voxel_to_obj("output_voxels.obj",output_label);
-    voxels.out_put_voxels_seperately("label_voxels",labells);
+   
     std::vector<std::vector<int>> exterior_surface_index;
     exterior_surface_index = extract_exterior_surface_voxel_index(0,voxels);
     output_exterior_surface_to_obj("exterior_surface.obj",exterior_surface_index,voxels);
+    if (output_intermediate_components){
+    voxels.out_put_all_voxel_to_obj("output_voxels.obj",output_label);
+    voxels.out_put_voxels_seperately("label_voxels",labells);
+    }
     
     //for (const auto& point : oobb) {
     //std::cout << point << " ";
