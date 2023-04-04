@@ -173,28 +173,108 @@ void output_exterior_surface_to_obj(const std::string &output_filename, const st
                                         vertex_index+=8;}
                                         out.close();
                                         }
+std::vector<std::vector<int>> extract_interior_surface_voxel_index(const int& exterior_labell,const int& wall_face_label, VoxelGrid voxelgrid){
+    std::vector<std::vector<int>> interior_voxels;
+    for(int x = 0; x <= voxelgrid.max_x; x++){
+        for(int y = 0; y <= voxelgrid.max_y; y++){
+            for(int z = 0; z <= voxelgrid.max_z; z++){
+
+                std::vector<std::vector<int>> neighbours = voxelgrid.get_neighbours(x,y,z);
+                bool push_or_not = 1;
+                for(auto& neighbour: neighbours){
+                    int x_neighbour = neighbour[0];
+                    int y_neighbour = neighbour[1];
+                    int z_neighbour = neighbour[2];
+                    Voxel neighbour_voxel = voxelgrid(x_neighbour,y_neighbour,z_neighbour);
+                    if(neighbour_voxel.label == exterior_labell and voxelgrid(x,y,z).label == wall_face_label){
+                        push_or_not = 0;
+                        break;
+                    };
+                };
+                if (push_or_not) {
+                std::vector<int> voxel_index = {x,y,z};
+                interior_voxels.push_back(voxel_index);};
+            };
+        }
+    }
+    return interior_voxels;
+}                                        
+void output_interior_surface_to_obj(const std::string &output_filename, const std::vector<std::vector<int>> interior_voxels,
+                                const VoxelGrid& voxelgrid){
+                                    std::ofstream out;
+                                    out.open(output_filename);
+                                    int vertex_index = 1;
+                                    for(auto& voxel_index: interior_voxels){
+                                        int x = voxel_index[0];
+                                        int y = voxel_index[1];
+                                        int z = voxel_index[2];
+                                        Voxel voxel = voxelgrid(x,y,z);
+                                        Point3 p0 = voxel.corner;
+                                        Point3 p1 = p0 + voxelgrid.vx;
+                                        Point3 p2 = p0 + voxelgrid.vx+voxelgrid.vy;
+                                        Point3 p3 = p0+voxelgrid.vy;
+                                        Point3 p4 = p0+voxelgrid.vy+voxelgrid.vz;
+                                        Point3 p5 = p0+voxelgrid.vz;
+                                        Point3 p6 = p0+voxelgrid.vx+voxelgrid.vz;
+                                        Point3 p7 = p0+voxelgrid.vx+voxelgrid.vz+voxelgrid.vy;
+                                        out << "v " <<  p0.x()<< " " << p0.y() << " " << p0.z()<< std::endl; //p0
+                                        out << "v " <<  p1.x()<< " " << p1.y() << " " << p1.z()<< std::endl; //p1
+                                        out << "v " <<  p2.x()<< " " << p2.y() << " " << p2.z()<< std::endl; //p2
+                                        out << "v " <<  p3.x()<< " " << p3.y() << " " << p3.z()<< std::endl; //p3
+                                        out << "v " <<  p4.x()<< " " << p4.y() << " " << p4.z()<< std::endl; //p4
+                                        out << "v " <<  p5.x()<< " " << p5.y() << " " << p5.z()<< std::endl; //p5
+                                        out << "v " <<  p6.x()<< " " << p6.y() << " " << p6.z()<< std::endl; //p6
+                                        out << "v " <<  p7.x()<< " " << p7.y() << " " << p7.z()<< std::endl; //p7
+                                        out << "f " << vertex_index << " " << vertex_index + 1 << " " << vertex_index + 2 << " " << vertex_index + 3 << std::endl;
+                                        out << "f " << vertex_index << " " << vertex_index + 1 << " " << vertex_index + 6 << " " << vertex_index + 5 << std::endl;
+                                        out << "f " << vertex_index+1 << " " << vertex_index + 2 << " " << vertex_index + 7 << " " << vertex_index + 6 << std::endl;
+                                        out << "f " << vertex_index +3<< " " << vertex_index + 2 << " " << vertex_index + 7 << " " << vertex_index + 4 << std::endl;
+                                        out << "f " << vertex_index << " " << vertex_index + 3 << " " << vertex_index + 4 << " " << vertex_index + 5 << std::endl;
+                                        out << "f " << vertex_index+4 << " " << vertex_index + 7 << " " << vertex_index + 6 << " " << vertex_index + 5 << std::endl;
+                                        vertex_index+=8;}
+                                        out.close();
+                                        }
 
                                         
 int main(int argc, const char * argv[]) {
     //-- will read the file passed as argument or 2b.city.json if nothing is passed
+    // this version filter many unnecessary functions and used as final result
     const char* filename = (argc > 1) ? argv[1] : "../data/input.obj";
     const int  output_label = (argc > 2) ? int(*argv[2]) : 1;
     std::vector<Point3> vertices;
     auto obj_parse_result = parse_obj(filename,vertices);
     std::vector<Face> faces = obj_parse_result.first;
-    stored_faces_obj("face_obj.obj",faces,vertices);
-    std::array<Point3, 8> oobb = generate_oobb_building(faces,vertices);
-    VoxelGrid voxels = VoxelGrid(oobb,0.5);
+    std::map<std::string, Object> objects = obj_parse_result.second;
     int wall_face_label = 1;
+     stored_faces_obj("face_obj.obj",faces,vertices);
+    std::array<Point3, 8> oobb = generate_oobb_building(faces,vertices);
+    VoxelGrid voxels = VoxelGrid(oobb,0.5); // initialize the voxel grid
     voxels.push_voxel(faces,vertices,wall_face_label);
+    /*for(auto& object: objects){
+        std::string object_name = object.first;
+        std::vector<Shell> object_shells = object.second.shells;
+        for(auto& shell: object_shells){
+            std::vector<Face> shell_faces = shell.faces;
+            std::cout<<shell.use_material<<std::endl; // print the material name, which u can used as attribute in cityjson output
+            voxels.push_voxel(shell_faces,vertices,wall_face_label);// push the faces into the voxel grid
+        }}*/
+   
+    
+    int exterior_voxel_label = 0;
     std::vector<int> labells;
-    labells = label_voxels(voxels,0,wall_face_label);
+    labells = label_voxels(voxels,exterior_voxel_label,wall_face_label);
 
+    // check the voxel grid, out put different label voxels to different obj files
     voxels.out_put_all_voxel_to_obj("output_voxels.obj",output_label);
     voxels.out_put_voxels_seperately("label_voxels",labells);
     std::vector<std::vector<int>> exterior_surface_index;
     exterior_surface_index = extract_exterior_surface_voxel_index(0,voxels);
     output_exterior_surface_to_obj("exterior_surface.obj",exterior_surface_index,voxels);
+    std::vector<std::vector<int>> interior_surface_index;
+    exterior_surface_index = extract_interior_surface_voxel_index(wall_face_label,0,voxels);
+    output_exterior_surface_to_obj("exterior_surface.obj",exterior_surface_index,voxels);
+    output_interior_surface_to_obj("interior_surface.obj",exterior_surface_index,voxels);
+
     
     //for (const auto& point : oobb) {
     //std::cout << point << " ";

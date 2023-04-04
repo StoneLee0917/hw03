@@ -185,8 +185,10 @@ struct VoxelGrid {
     }
     void push_voxel(const std::vector<Face>& faces, const std::vector<Point3>& vertices,const int& label_num)
     {
-        
-        this->push_voxel();
+        // excecute this function, first make sure that all voxels have been pushed, if not push them first
+        if(voxels.size()==0){
+            this->push_voxel(faces,vertices);
+            }
        
         for(auto face:faces){
             Point3 p0 = vertices[face.indices[0]];
