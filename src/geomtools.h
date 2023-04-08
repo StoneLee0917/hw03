@@ -15,8 +15,6 @@ construct_ct_one_face(const std::vector<std::vector<int>>& lsRings,
 
 
 
-
-
 struct Voxel{
 public:
     Voxel(const Point3& corner,const Vector3& vx,const Vector3& vy,const Vector3& vz):corner(corner){
@@ -45,7 +43,7 @@ public:
         }
 
     }
-   bool intersect_faces_cubes(const Vector3& vx,const Vector3& vy,const Vector3& vz,const Face& face,const std::vector<Point3>& vertices){
+    bool intersect_faces_cubes(const Vector3& vx,const Vector3& vy,const Vector3& vz,const Face& face,const std::vector<Point3>& vertices){
         Point3 p0 = this->corner;
         Point3 p1 = p0+vx;
         Point3 p2 = p0+vx+vy;
@@ -313,7 +311,8 @@ struct VoxelGrid {
         out.close();
 
 }
-    void out_put_voxels_seperately(const std::string& filename,const std::vector<int>& labels){
+    void out_put_voxels_seperately(const std::string& filename,
+    const std::vector<int>& labels){
         std::string full_filename;
         for(auto label:labels){
             std::cout<<"output"<<label<<std::endl;
@@ -323,20 +322,128 @@ struct VoxelGrid {
         
 
     };
-
-    json write_voxels_grid_tojson(const int& unwanted_label = -1){
+    // this function is used to ouput voxels to cityjson 1.1, after we labelled it
+    json initialized_voxels_grid_tojson(const std::string& cityobject_id,
+    const std::vector<int>& labels,const int& exterior_label, bool output_seperately = true){
         assert(voxels.size()>0);
         json j;
+        // initialize the cityjson file
         j["type"] = "CityJSON";
         j["version"] = "1.1";
-        j["transform"] = nlohmann::json::object();
-        j["transform"]["scale"] = nlohmann::json::array({1.0, 1.0, 1.0});
-        j["transform"]["translate"] = nlohmann::json::array({0.0, 0.0, 0.0});
-        j["CityObjects"] = nlohmann::json::object();
+        j["transform"] = json::object();
+        j["transform"]["scale"] = json::array();
+        j["transform"]["translate"] = json::array();
+        j["transform"]["scale"].push_back(1);j["transform"]["scale"].push_back(1);j["transform"]["scale"].push_back(1);
+        j["transform"]["translate"].push_back(0);j["transform"]["translate"].push_back(0);j["transform"]["translate"].push_back(0);
+        j["metadata"] = json::object();
+        j["CityObjects"] = json::object();
+        j["vertices"] = json::array();
+        j["appearance"] = json::object();
+        j["CityObjects"][cityobject_id] = json::object();
+        j["CityObjects"][cityobject_id]["type"] = "Building";
+        j["CityObjects"][cityobject_id]["children"] = json::array();
+        for(auto label:labels){
+            if(label == exterior_label) continue;
+            std::string obj_id = cityobject_id+"_part_"+std::to_string(label);
+            j["CityObjects"][obj_id] = json::object();
+            j["CityObjects"][obj_id]["type"] = "BuildingRoom";
+            j["CityObjects"][cityobject_id]["children"].push_back(obj_id);
+            j["CityObjects"][obj_id]["geometry"] = json::array();
+            j["CityObjects"][obj_id]["attributes"] = json::object();
+            j["CityObjects"][obj_id]["attributes"]["label"] = label;
+            j["CityObjects"][obj_id]["parents"] = json::array();
+            j["CityObjects"][obj_id]["parents"].push_back(cityobject_id);
+            
+            }
+        // store the vertices in voxels into cityjson   
+        for(int x = 0;x <max_x;++x){
+            for(int y = 0;y<max_y;++y ){
+                for(int z = 0;z <max_z;++z){
+                    json vertices = json::array();
+                    Point3 pt_corner = voxels[z + y*max_z + x*max_z*max_y].corner;
+                    double pt_x = pt_corner.x();
+                    double pt_y = pt_corner.y();
+                    double pt_z = pt_corner.z();
+                    vertices.push_back(pt_x);
+                    vertices.push_back(pt_y);
+                    vertices.push_back(pt_z);
+                    j["vertices"].push_back(vertices);
+                    int voxel_label = voxels[z + y*max_z + x*max_z*max_y].label;
+                    if(voxel_label != exterior_label){
+                        std::string obj_id = cityobject_id+"_part_"+std::to_string(voxel_label);
+                        json geometry;
+                        geometry["type"] = "Solid";
+                        geometry["lod"] = "2";
+                        
+                        json solid = json::array();    
+                        int p0 = z + y*max_z + x*max_z*max_y;
+                        int p1 = z + y*max_z + (x+1)*max_z*max_y;
+                        int p2 = z + (y+1)*max_z + (x+1)*max_z*max_y;
+                        int p3 = z + (y+1)*max_z + x*max_z*max_y;
+                        int p4 = (z+1) + (y+1)*max_z + x*max_z*max_y;
+                        int p5 = (z+1) + y*max_z + x*max_z*max_y;
+                        int p6 = (z+1) + y*max_z + (x+1)*max_z*max_y;
+                        int p7 = (z+1) + (y+1)*max_z + (x+1)*max_z*max_y;
+                        
+                        std::array<int,4> ring1 = {p3,p2,p1,p0};
+                        std::array<int,4> ring2 = {p0,p1,p6,p5};
+                        std::array<int,4> ring3 = {p3,p0,p5,p4};
+                        std::array<int,4> ring4 = {p4,p5,p6,p7};
+                        std::array<int,4> ring5 = {p7,p6,p1,p2};
+                        std::array<int,4> ring6 = {p4,p7,p2,p3};
+                        std::array<std::array<int,4>,1> face1;
+                        std::array<std::array<int,4>,1> face2;
+                        std::array<std::array<int,4>,1> face3;
+                        std::array<std::array<int,4>,1> face4;
+                        std::array<std::array<int,4>,1> face5;
+                        std::array<std::array<int,4>,1> face6;
+                        face1[0] = ring1;
+                        face2[0] = ring2;
+                        face3[0] = ring3;
+                        face4[0] = ring4;
+                        face5[0] = ring5;
+                        face6[0] = ring6;
+                        
+                        solid.push_back(face1);
+                        solid.push_back(face2);
+                        solid.push_back(face3);
+                        solid.push_back(face4);
+                        solid.push_back(face5);
+                        solid.push_back(face6);
+                        geometry["boundaries"] = json::array();
+                        geometry["boundaries"].push_back(solid);
+                        j["CityObjects"][obj_id]["geometry"].push_back(geometry);
+                        
+                    }
+
+
+                }
+            }
+            
+        }
+        if(output_seperately){
+            for(auto& label:labels){
+                if(label == exterior_label) continue;
+                std::string obj_id = cityobject_id+"_part_"+std::to_string(label);
+                // seperately output each child in building
+                std::string output_file =  obj_id + ".json";
+                std::ofstream out(output_file);
+                json j_out = json::object();
+                j_out["type"] = "CityJSON";
+                j_out["version"] = "1.0";        
+                j_out["CityObjects"] = json::object();
+                j_out["CityObjects"][obj_id] = json::object();
+                j_out["CityObjects"][obj_id]["type"] = "BuildingRoom";
+                j_out["CityObjects"][obj_id]["geometry"] = j["CityObjects"][obj_id]["geometry"];
+                j_out["CityObjects"][obj_id]["attributes"] = json::object();
+                j_out["CityObjects"][obj_id]["attributes"]["label"] = label;
+
+                j_out["vertices"] = j["vertices"];
+                out << std::setw(4) << j_out << std::endl;
+                out.close();}
+        }
+        //  according to the label of voxels, we store the boundary of each voxel into cityjson
         return j;
-        
-
-
         }
     
     
