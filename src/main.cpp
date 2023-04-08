@@ -21,11 +21,11 @@
 #include <CGAL/Polygon_mesh_processing/IO/polygon_mesh_io.h>
 //#include <CGAL/point_generators_3.h>
 #include <CGAL/Simple_cartesian.h>
-
+#include "json.hpp"
 
 //-- https://github.com/nlohmann/json
 //-- used to read and write (City)JSON
-
+using json = nlohmann::json;
 //typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 typedef CGAL::Triangulation_3<K> Tetrahedron;
 namespace PMP = CGAL::Polygon_mesh_processing;
@@ -202,8 +202,9 @@ int main(int argc, const char * argv[]) {
     // oobb of building
     std::array<Point3, 8> oobb = generate_oobb_building(faces,vertices);
     // initialize voxel grid
+
     VoxelGrid voxels = VoxelGrid(oobb,unit);
-    // label to label the wall, floor roof surfaces
+   // label to label the wall, floor roof surfaces
     int wall_face_label = 1;
     // initalize the whole voxels
     voxels.push_voxel();
@@ -219,20 +220,20 @@ int main(int argc, const char * argv[]) {
             shells_count++;
             total_faces += shell_faces.size();
             std::cout<<shell.use_material<<" "<<shells_count<<" "<<shell_faces.size()<<std::endl; // print the material name, which u can used as attribute in cityjson output
-            
+
             voxels.push_voxel(shell_faces,vertices,wall_face_label);// push the faces into the voxel grid
         }}
     std::cout<<"total faces: "<<total_faces<<" true faces"<<faces.size()<<std::endl;
     std::vector<int> labells;
     int exterior_label = 0;
     labells = label_voxels(voxels,exterior_label,wall_face_label);
-    
+/*
 
-   
+
     std::vector<std::vector<int>> exterior_surface_index;
     exterior_surface_index = extract_exterior_surface_voxel_index(0,voxels);
     std::cout<<"exterior surface index size: "<<exterior_surface_index.size()<<std::endl;
-  
+
     output_exterior_surface_to_obj("exterior_surface.obj",exterior_surface_index,voxels);
     if (output_intermediate_components){
     voxels.out_put_all_voxel_to_obj("output_voxels.obj",output_label);
@@ -240,12 +241,12 @@ int main(int argc, const char * argv[]) {
     }
 
     // tell the cityjson to output the room, wall, with exception of exterior
-    
+
     json j = voxels.initialized_voxels_grid_tojson("building_test",labells, exterior_label);
     std::ofstream o("building_test.json");
     o << std::setw(4) << j << std::endl;
     o.close();
-
+*/
     
     //for (const auto& point : oobb) {
     //std::cout << point << " ";

@@ -29,13 +29,15 @@ std::pair<std::vector<Face>,std::map<std::string, Object>> parse_obj(const std::
 			iss>>id;
 			Object another_new_object;
 			another_new_object.id = id;
-			if (new_shell.faces.size() != 0){
-				std::cout<<"id address of new shell"<<&new_shell<<std::endl;
+			//push the last object, start a new one
+            if (new_shell.faces.size() != 0){
+//				std::cout<<"id address of new shell"<<&new_shell<<std::endl;
 				new_object.shells.push_back(new_shell);
 				object_map.insert(std::make_pair(new_object.id, new_object));
 				new_object = another_new_object;}
 			else {
-				new_object = another_new_object;
+				//when reading the first line of .obj file
+                new_object = another_new_object;
 			}
 		}
 		//read shell
@@ -43,9 +45,9 @@ std::pair<std::vector<Face>,std::map<std::string, Object>> parse_obj(const std::
 			
 			//new_object.shells.push_back(new_shell);
 			Shell another_new_shell;
-			std::cout<<"id address of anotehr new shell"<<&another_new_shell<<std::endl;
+//			std::cout<<"id address of anotehr new shell"<<&another_new_shell<<std::endl;
 			new_shell = another_new_shell;
-			std::cout<<"id address of updated new shell"<<&new_shell<<std::endl;
+//			std::cout<<"id address of updated new shell"<<&new_shell<<std::endl;
 			
 		}
 		else if (line.substr(0, 2) == "us"){
@@ -66,8 +68,6 @@ std::pair<std::vector<Face>,std::map<std::string, Object>> parse_obj(const std::
 			// append them to current shells
 			faces.push_back(new_face);
 			new_shell.faces.push_back(new_face);
-			
-			
 			}
 		// read vertices, just store them into the verteices vector
 		else if (line.substr(0,2) == "v "){
@@ -82,8 +82,9 @@ std::pair<std::vector<Face>,std::map<std::string, Object>> parse_obj(const std::
 	
 	new_object.shells.push_back(new_shell);
 	object_map.insert(std::make_pair(new_object.id, new_object));
-		
-	std::cout<<"object_map size: "<<object_map.size()<<" "<<total_objecct<<" faces is"<<faces.size()<<" total vertices"<<vertices.size()<<std::endl;
+    auto n_objects=object_map.size();
+
+	std::cout<<"object_map size: "<<n_objects<<" faces number is "<<faces.size()<<" total vertices number is "<<vertices.size()<<std::endl;
 	input_stream.close();
     
     return std::make_pair(faces,object_map);
